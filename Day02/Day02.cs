@@ -49,15 +49,36 @@ namespace AOC2024.Day02
 
         private static void PartTwo(List<List<int>> reportList)
         {
-            foreach (var report in reportList)
+            for (var i = 0; i < reportList.Count; i++)
             {
-                var n = CompareLists(report, report.OrderBy(i => i).ToList());
-                //if (CompareLists(report, report.OrderBy(i => i).ToList()) == 1)
-                //{
-                //    // report with one faulty number
+                //dups removal
+                if (reportList[i].Distinct().Count() != reportList[i].Count)
+                {
+                    reportList[i] = reportList[i].Distinct().ToList();
+                    continue;
+                }
 
-                //}
+                //extreme delta removal
+                var deltaList = GetDeltaList(reportList[i]);
+                if (deltaList.Any(x => x is > 3 or < -3))
+                {
+                    reportList[i] = reportList[i].Where(x => x is >= -3 and <= 3).ToList();
+                    continue;
+                }
+
             }
+        }
+
+        private static List<int> GetDeltaList(List<int> report)
+        {
+            var deltaList = new List<int>();
+            for (var i = 0; i < report.Count - 1; i++)
+            {
+                var delta = report[i] - report[i + 1];
+                deltaList.Add(delta);
+            }
+
+            return deltaList;
         }
 
         private static int CheckOrder(List<int> list)
@@ -88,16 +109,6 @@ namespace AOC2024.Day02
             }
 
             return 0;
-        }
-
-        private static int CompareLists(List<int> list1, List<int> list2)
-        {
-            if (list1.Count != list2.Count)
-            {
-                throw new ArgumentException("Lists must be of the same length");
-            }
-
-            return list1.Where((t, i) => t != list2[i]).Count();
         }
     }
 }
