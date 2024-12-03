@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AOC2024.Day02
 {
-    internal class Day02
+    internal static class Day02
     {
         public static void Solve()
         {
@@ -51,34 +51,36 @@ namespace AOC2024.Day02
         {
             for (var i = 0; i < reportList.Count; i++)
             {
-                //dups removal
-                if (reportList[i].Distinct().Count() != reportList[i].Count)
+                if (!reportList[i].IsValid())
                 {
-                    reportList[i] = reportList[i].Distinct().ToList();
-                    continue;
+                    for (var j = 0; j < reportList[i].Count; j++)
+                    {
+                        var l = new List<int>(reportList[i]);
+                        l.RemoveAt(j);
+                        if (l.IsValid())
+                        {
+                            reportList[i] = l;
+                            break;
+                        }
+                    }
                 }
-
-                //extreme delta removal
-                var deltaList = GetDeltaList(reportList[i]);
-                if (deltaList.Any(x => x is > 3 or < -3))
-                {
-                    reportList[i] = reportList[i].Where(x => x is >= -3 and <= 3).ToList();
-                    continue;
-                }
-
             }
+
+            PartOne(reportList);
         }
 
-        private static List<int> GetDeltaList(List<int> report)
+        private static bool IsValid(this List<int> report)
         {
-            var deltaList = new List<int>();
+            if (CheckOrder(report) == 0)
+                return false;
+
             for (var i = 0; i < report.Count - 1; i++)
             {
-                var delta = report[i] - report[i + 1];
-                deltaList.Add(delta);
+                var delta = Math.Abs(report[i] - report[i + 1]);
+                if (delta is < 1 or > 3)
+                    return false;
             }
-
-            return deltaList;
+            return true;
         }
 
         private static int CheckOrder(List<int> list)
