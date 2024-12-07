@@ -44,7 +44,7 @@ namespace AOC2024.Day03
                     state = false;
                 else
                     if (dos.Contains(i))
-                        state = true;
+                    state = true;
 
                 result.Add((i, state));
             }
