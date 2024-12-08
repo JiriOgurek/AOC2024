@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-
-namespace AOC2024.Day04
+﻿namespace AOC2024.Day04
 {
     internal static class Day04
     {

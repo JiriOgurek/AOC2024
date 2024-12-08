@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿using System.Collections.Generic;
+using System.Data;
+using System.Text;
 
 namespace AOC2024.Day05
 {
@@ -15,7 +11,7 @@ namespace AOC2024.Day05
             var rules = File.ReadAllText(@"Day05\Day05Rules.txt");
             var pages = File.ReadAllText(@"Day05\Day05Pages.txt");
             PartOne(rules, pages);
-            //PartTwo(input);
+            PartTwo(rules, pages);
         }
 
         private static List<(int, List<int>)> ParseRules(string rules)
@@ -110,8 +106,67 @@ namespace AOC2024.Day05
             return pages.Select(int.Parse).ToList();
         }
 
-        private static void PartTwo(string input)
+        private static void PartTwo(string _rules, string _pages)
         {
+            var rules = ParseRules(_rules);
+            var invalidLines = new List<string>();
+
+            foreach (var pageLine in _pages.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var pages = ParsePageLine(pageLine);
+                var valid = ValidatePage(rules, pages);
+
+                if (!valid)
+                {
+                    invalidLines.Add(pageLine);
+                }
+            }
+
+            for (var i = 0; i < invalidLines.Count; i++)
+            {
+                do
+                    invalidLines[i] = CorrectLine(invalidLines[i], rules);
+                while (!ValidatePage(rules, ParsePageLine(invalidLines[i])));
+            }
+
+            var sum = 0;
+
+            foreach (var pageLine in invalidLines)
+            {
+                var pages = ParsePageLine(pageLine);
+                sum += pages[(pages.Count - 1) / 2];
+            }
+
+            Console.WriteLine(sum);
+        }
+
+        private static string CorrectLine(string line, List<(int, List<int>)> rules)
+        {
+            var pages = ParsePageLine(line);
+
+            for (var i = 0; i < pages.Count; i++)
+            {
+                var doms = GetDominants(rules, pages[i]);
+                var subs = GetSubmissives(rules, pages[i]);
+                // check if all dominants are before the current page
+                for (var j = 0; j < i; j++)
+                {
+                    if (!doms.Contains(pages[j]))
+                    {
+                        (pages[i], pages[j]) = (pages[j], pages[i]);
+                    }
+                }
+                // check if all submissives are after the current page
+                for (var j = i + 1; j < pages.Count; j++)
+                {
+                    if (!subs.Contains(pages[j]))
+                    {
+                        (pages[i], pages[j]) = (pages[j], pages[i]);
+                    }
+                }
+            }
+
+            return string.Join(",", pages);
         }
     }
 }
