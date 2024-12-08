@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AOC2024.Day05
 {
@@ -10,121 +12,106 @@ namespace AOC2024.Day05
     {
         public static void Solve()
         {
-            var input = File.ReadAllText(@"Day04\input.txt");
-            PartOne(input);
-            PartTwo(input);
+            var rules = File.ReadAllText(@"Day05\Day05Rules.txt");
+            var pages = File.ReadAllText(@"Day05\Day05Pages.txt");
+            PartOne(rules, pages);
+            //PartTwo(input);
         }
 
-        private static void PartOne(string input)
+        private static List<(int, List<int>)> ParseRules(string rules)
         {
-            var array = CreateArray(@"Day04\input.txt");
-
-            var positions = FindWord(array, "XMAS", [
-                (-1, 0), (1, 0), (0, -1), (0, 1), // Up, Down, Left, Right
-                (-1, -1), (-1, 1), (1, -1), (1, 1) // Diagonals
-            ]);
-            var sum = positions.Count();
-
-            Console.WriteLine(sum);
-        }
-
-        private static void PartTwo(string input)
-        {
-            var array = CreateArray(@"Day04\input.txt");
-
-            var listDownRight = GetCrossWords(array, (1, 1));
-            var listDownLeft = GetCrossWords(array, (1, -1));
-
-            var sum = 0;
-            foreach (var pos in listDownRight)
+            var ruleList = new List<(int, List<int>)>();
+            var ruleLines = rules.Split("\n", StringSplitOptions.RemoveEmptyEntries);
+            foreach (var ruleLine in ruleLines)
             {
-                //Console.WriteLine($"{pos.Item1}:{pos.Item2}");
-
-                if (listDownLeft.Contains(new Tuple<int, int>(pos.Item1, pos.Item2 + 2)))
-                    sum++;
-            }
-
-            Console.WriteLine(sum);
-        }
-
-        private static List<Tuple<int, int>> GetCrossWords(char[,] array, (int, int) direction)
-        {
-            var posMas = FindWord(array, "MAS", [
-                direction // Diagonals down-right
-            ]);
-            var posSam = FindWord(array, "SAM", [
-                direction // Diagonals down-left
-            ]);
-            var listDownRight = posMas.Union(posSam).ToList();
-            return listDownRight;
-        }
-
-        private static char[,] CreateArray(string input)
-        {
-            // Read all lines from the input
-            var lines = File.ReadAllLines(input);
-
-            // Determine the number of rows and columns
-            var rows = lines.Length;
-            var cols = lines[0].Length;
-
-            // Initialize the two-dimensional array
-            var array = new char[rows, cols];
-
-            // Populate the array with characters from the input
-            for (var i = 0; i < rows; i++)
-            {
-                for (var j = 0; j < cols; j++)
+                var ruleValues = ruleLine.Split("|");
+                var key = int.Parse(ruleValues[0]);
+                var value = int.Parse(ruleValues[1]);
+                if (ruleList.Select(x => x.Item1).Contains(key))
                 {
-                    array[i, j] = lines[i][j];
+                    ruleList[ruleList.FindIndex(x => x.Item1 == key)].Item2.Add(value);
+                }
+                else
+                {
+                    var rule = (key, new List<int> { value });
+                    ruleList.Add(rule);
+                }
+            }
+            return ruleList;
+        }
+
+        private static void PartOne(string _rules, string _pages)
+        {
+            var rules = ParseRules(_rules);
+            var sum = 0;
+
+            foreach (var pageLine in _pages.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var pages = ParsePageLine(pageLine);
+                var valid = ValidatePage(rules, pages);
+
+                if (valid)
+                {
+                    sum += pages[(pages.Count - 1) / 2];
                 }
             }
 
-            return array;
+            Console.WriteLine(sum);
         }
 
-        private static List<Tuple<int, int>> FindWord(char[,] array, string word, (int, int)[] directions)
+        private static bool ValidatePage(List<(int, List<int>)> rules, List<int> pages)
         {
-            var positions = new List<Tuple<int, int>>();
-            var rows = array.GetLength(0);
-            var cols = array.GetLength(1);
-            var wordLength = word.Length;
-
-            for (var x = 0; x < rows; x++)
+            for (var i = 0; i < pages.Count; i++)
             {
-                for (var y = 0; y < cols; y++)
+                var doms = GetDominants(rules, pages[i]);
+                var subs = GetSubmissives(rules, pages[i]);
+
+                // check if all dominants are before the current page
+                for (var j = 0; j < i; j++)
                 {
-                    foreach (var (dx, dy) in directions)
+                    if (!doms.Contains(pages[j]))
                     {
-                        if (IsWordAtPosition(array, word, x, y, dx, dy))
-                        {
-                            positions.Add(Tuple.Create(x, y));
-                        }
+                        return false;
+                    }
+                }
+
+                // check if all submissives are after the current page
+                for (var j = i + 1; j < pages.Count; j++)
+                {
+                    if (!subs.Contains(pages[j]))
+                    {
+                        return false;
                     }
                 }
             }
 
-            return positions;
+            return true;
         }
 
-        private static bool IsWordAtPosition(char[,] array, string word, int startX, int startY, int dx, int dy)
+        private static List<int> GetDominants(List<(int, List<int>)> rules, int x)
         {
-            var rows = array.GetLength(0);
-            var cols = array.GetLength(1);
-            var wordLength = word.Length;
+            return rules
+                .Where(rule => rule.Item2.Contains(x))
+                .Select(rule => rule.Item1)
+                .ToList();
+        }
 
-            for (var i = 0; i < wordLength; i++)
-            {
-                var newX = startX + i * dx;
-                var newY = startY + i * dy;
+        private static List<int> GetSubmissives(List<(int, List<int>)> rules, int x)
+        {
+            return rules
+                .Where(rule => rule.Item1 == x)
+                .SelectMany(rule => rule.Item2)
+                .ToList();
+        }
 
-                if (newX < 0 || newX >= rows || newY < 0 || newY >= cols || array[newX, newY] != word[i])
-                {
-                    return false;
-                }
-            }
+        private static List<int> ParsePageLine(string pageLine)
+        {
+            var pages = pageLine.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            return pages.Select(int.Parse).ToList();
+        }
 
-            return true;
+        private static void PartTwo(string input)
+        {
         }
     }
 }
