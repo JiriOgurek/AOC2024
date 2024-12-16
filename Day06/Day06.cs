@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Data;
-using System.Text;
-
-namespace AOC2024.Day06
+﻿namespace AOC2024.Day06
 {
     internal class Day06
     {
